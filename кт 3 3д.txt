@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Простые фигуры в Three.js</title>
+    <style>
+        body {
+            margin: 0;
+            overflow: hidden;
+            background-color: #111116;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        #ui-overlay {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            color: #ffffff;
+            pointer-events: none;
+            background: rgba(255, 255, 255, 0.05);
+            padding: 15px 20px;
+            border-radius: 8px;
+            backdrop-filter: blur(5px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        h1 {
+            margin: 0 0 5px 0;
+            font-size: 18px;
+            font-weight: 500;
+            letter-spacing: 1px;
+        }
+        p {
+            margin: 0;
+            font-size: 12px;
+            color: #8a8a93;
+        }
+    </style>
+    <!-- Подключаем стабильную версию Three.js и OrbitControls через надежный CDN -->
+    <script src="https://cloudflare.com"></script>
+    <script src="https://jsdelivr.net"></script>
+</head>
+<body>
+
+    <div id="ui-overlay">
+        <h1>Three.js Геометрия</h1>
+        <p>Используйте мышь для вращения и масштабирования сцены</p>
+    </div>
+
+    <script>
+        // 1. Инициализация сцены, камеры и рендерера
+        const scene = new THREE.Scene();
+        // Добавляем мягкий туман, чтобы объекты красиво уходили в темноту на расстоянии
+        scene.fog = new THREE.FogExp2('#111116', 0.05);
+
+        const camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 1000);
+        camera.position.set(0, 4, 7);
+
+        const renderer = new THREE.WebGLRenderer({ antialias: true });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+        renderer.shadowMap.enabled = true; // Включаем поддержку теней
+        renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+        document.body.appendChild(renderer.domElement);
+
+        // 2. Интерактивное управление (Орбитальные контролы)
+        const controls = new THREE.OrbitControls(camera, renderer.domElement);
+        controls.enableDamping = true;
+        controls.dampingFactor = 0.05;
+        controls.maxPolarAngle = Math.PI / 2 - 0.05; // Не даем камере опускаться под пол
+
+        // 3. Общие настройки материалов
+        // Используем MeshStandardMaterial для красивого взаимодействия со светом
+        const materialCube = new THREE.MeshStandardMaterial({ color: 0xff4141, roughness: 0.4 });
+        const materialSphere = new THREE.MeshStandardMaterial({ color: 0x4183ff, roughness: 0.2, metalness: 0.1 });
+        const materialCylinder = new THREE.MeshStandardMaterial({ color: 0xffca41, roughness: 0.5 });
+        const materialFloor = new THREE.MeshStandardMaterial({ color: 0x22222b, roughness: 0.8 });
+
+        // 4. Создание и размещение простых фигур
+        
+        // Куб
+        const cubeGeo = new THREE.BoxGeometry(1.2, 1.2, 1.2);
+        const cube = new THREE.Mesh(cubeGeo, materialCube);
+        cube.position.set(-2, 0.6, 0); // приподнят на половину высоты, чтобы стоять на полу
+        cube.castShadow = true;
+        cube.receiveShadow = true;
+        scene.add(cube);
+
+        // Сфера
+        const sphereGeo = new THREE.SphereGeometry(0.8, 32, 32);
+        const sphere = new THREE.Mesh(sphereGeo, materialSphere);
+        sphere.position.set(0, 0.8, 0);
+        sphere.castShadow = true;
+        sphere.receiveShadow = true;
+        scene.add(sphere);
+
+        // Цилиндр
+        const cylinderGeo = new THREE.CylinderGeometry(0.5, 0.5, 1.6, 32);
+        const cylinder = new THREE.Mesh(cylinderGeo, materialCylinder);
+        cylinder.position.set(2, 0.8, 0);
+        cylinder.castShadow = true;
+        cylinder.receiveShadow = true;
+        scene.add(cylinder);
+
+        // Пол (плоскость)
+        const floorGeo = new THREE.PlaneGeometry(20, 20);
+        const floor = new THREE.Mesh(floorGeo, materialFloor);
+        floor.rotation.x = -Math.PI / 2; // Переворачиваем горизонтально
+        floor.position.y = 0;
+        floor.receiveShadow = true; // Пол только принимает тени
+        scene.add(floor);
+
+        // 5. Освещение сцены
+        // Мягкий заполняющий свет (подсвечивает тени)
+        const ambientLight = new THREE.AmbientLight(0xffffff, 0.3);
+        scene.add(ambientLight);
+
+        // Основной направленный свет (имитирует солнце, создает тени)
+        const dirLight = new THREE.DirectionalLight(0xffffff, 0.8);
+        dirLight.position.set(5, 8, 5);
+        dirLight.castShadow = true;
+        // Настройка качества теней
+        dirLight.shadow.mapSize.width = 2048;
+        dirLight.shadow.mapSize.height = 2048;
+        dirLight.shadow.camera.near = 0.5;
+        dirLight.shadow.camera.far = 25;
+        dirLight.shadow.bias = -0.001;
+        scene.add(dirLight);
+
+        // Мягкая синяя подсветка с противоположной стороны для контраста
+        const fillLight = new THREE.DirectionalLight(0x4183ff, 0.4);
+        fillLight.position.set(-5, 4, -5);
+        scene.add(fillLight);
+
+        // 6. Обработка изменения размеров окна браузера
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        });
+
+        // 7. Основной цикл анимации
+        function animate() {
+            requestAnimationFrame(animate);
+
+            // Получаем текущее время для плавных волнообразных анимаций
+            const time = Date.now() * 0.001;
+
+            // Вращаем куб
+            cube.rotation.x += 0.01;
+            cube.rotation.y += 0.01;
+
+            // Заставляем сферу плавно прыгать (вверх-вниз по синусоиде)
+            sphere.position.y = 0.8 + Math.abs(Math.sin(time * 2)) * 1.2;
+            // Слегка масштабируем сферу при приземлении для эффекта "желейности"
+            const scaleY = 1 - Math.abs(Math.cos(time * 2)) * 0.15;
+            sphere.scale.set(1, Math.max(0.8, scaleY), 1);
+
+            // Покачиваем цилиндр из стороны в сторону
+            cylinder.rotation.z = Math.sin(time * 3) * 0.2;
+
+            // Обновляем трекинг мыши
+            controls.update();
+
+            // Рендерим измененную сцену
+            renderer.render(scene, camera);
+        }
+
+        // Запуск приложения
+        animate();
+    </script>
+</body>
+</html>
